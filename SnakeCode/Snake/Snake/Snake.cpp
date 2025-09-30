@@ -3,9 +3,24 @@
 #include <conio.h>
 using namespace std;
 
-const int WIDTH = 20;
+const int WIDTH = 30;
 const int HEIGHT = 20;
+
 int foodX, foodY;
+
+void clearScreen() {
+    COORD coord = { 0, 0 };
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
+}
+
+void hideCursor() {
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_CURSOR_INFO cursorInfo;
+    GetConsoleCursorInfo(hConsole, &cursorInfo);
+    cursorInfo.bVisible = false;
+    SetConsoleCursorInfo(hConsole, &cursorInfo);
+}
+
 
 void DrawEmptyBoard()
 {
@@ -17,14 +32,14 @@ void DrawEmptyBoard()
         {
             if (i == 0 || i == HEIGHT - 1 || j == 0 || j == WIDTH - 1)
             {
-                cout << "#";
+                std::cout << "#";
             }
             else
             {
-                cout << " ";
+                std::cout << " ";
             }
         }
-        cout << "\n";
+        std::cout << "\n";
     }
 }
 
@@ -42,7 +57,7 @@ public:
         y[0] = HEIGHT / 2;
 
     }
-    int getX(int i) 
+    int getX(int i)
     {
         return x[i];
     }
@@ -89,7 +104,7 @@ public:
 
 void drawBoard(Snake& snake, int foodX, int foodY)
 {
-    system("cls");
+    clearScreen();
 
     for (int i = 0; i < HEIGHT; i++)
     {
@@ -101,8 +116,14 @@ void drawBoard(Snake& snake, int foodX, int foodY)
             {
                 if (snake.getX(k) == j && snake.getY(k) == i)
                 {
-                    if (k == 0) cout << "O";
-                    else cout << "o";
+                    if (k == 0)
+                    {
+                            std::cout << "\033[34;42mO\033[0m";
+                    }
+                    else
+                    {
+                        std::cout << "\033[34;42mo\033[0m";
+                    }
                     printed = true;
                     break;
                 }
@@ -110,7 +131,7 @@ void drawBoard(Snake& snake, int foodX, int foodY)
 
             if (!printed && j == foodX && i == foodY)
             {
-                cout << "*";
+                std::cout << "\033[31;42m*\033[0m";
                 printed = true;
             }
 
@@ -118,15 +139,16 @@ void drawBoard(Snake& snake, int foodX, int foodY)
             {
                 if (i == 0 || i == HEIGHT - 1 || j == 0 || j == WIDTH - 1)
                 {
-                    cout << "#";
+                    std::cout << "\033[37m#\033[0m";
 
-                }else
+                }
+                else
                 {
-                    cout << " ";
+                    std::cout << "\033[32;42m \033[0m";
                 }
             }
         }
-        cout << "\n";
+        std::cout << "\n";
     }
 }
 
@@ -178,7 +200,7 @@ int main()
 
     while (!gameOver)
     {
-        drawBoard(snake,foodX,foodY);
+        drawBoard(snake, foodX, foodY);
         input(dx, dy);
         if (dx != 0 || dy != 0)
         {
@@ -202,6 +224,6 @@ int main()
 
         Sleep(180);
     }
-    cout << "GAME OVER! Scor: " << snake.getLength() - 1 << "\n";
+    std::cout << "GAME OVER! Scor: " << snake.getLength() - 1 << "\n";
     return 0;
 }
