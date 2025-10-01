@@ -1,12 +1,47 @@
-#include <iostream>
+﻿#include <iostream>
 #include <windows.h>
 #include <conio.h>
+#include <fstream>
+#include <string>
 using namespace std;
 
 const int WIDTH = 30;
 const int HEIGHT = 20;
+const int MAX_OBSTACLES = 50;
+int obstacleX[MAX_OBSTACLES];
+int obstacleY[MAX_OBSTACLES];
+int obstacleCount = 0;
 
 int foodX, foodY;
+
+void saveScore(const string& nume, int scor)
+{
+    ofstream fout("score.txt", std::ios::app);
+    if (fout.is_open())
+    {
+        fout << nume << " - " << scor << " puncte\n";
+        fout.close();
+    }
+}
+
+void showScore()
+{
+    ifstream fin("score.txt");
+    if (fin.is_open())
+    {
+        string line;
+        std::cout << "\n Saved scores:\n";
+        while (getline(fin, line))
+        {
+            std::cout << " " << line << "\n";
+        }
+        fin.close();
+    }
+    else
+    {
+        std::cout << "\nNo saved scores yet!.\n";
+    }
+}
 
 void clearScreen() {
     COORD coord = { 0, 0 };
@@ -20,6 +55,8 @@ void hideCursor() {
     cursorInfo.bVisible = false;
     SetConsoleCursorInfo(hConsole, &cursorInfo);
 }
+
+
 
 
 void DrawEmptyBoard()
@@ -102,7 +139,7 @@ public:
 
 
 
-void drawBoard(Snake& snake, int foodX, int foodY)
+void drawBoard(Snake& snake, int foodX, int foodY, int score, int seconds)
 {
     clearScreen();
 
@@ -135,6 +172,16 @@ void drawBoard(Snake& snake, int foodX, int foodY)
                 printed = true;
             }
 
+            for (int o = 0; o < obstacleCount; o++)
+            {
+                if (obstacleX[o] == j && obstacleY[o] == i)
+                {
+                    std::cout << "\033[30;47mX\033[0m";
+                    printed = true;
+                    break;
+                }
+            }
+
             if (!printed)
             {
                 if (i == 0 || i == HEIGHT - 1 || j == 0 || j == WIDTH - 1)
@@ -148,11 +195,18 @@ void drawBoard(Snake& snake, int foodX, int foodY)
                 }
             }
         }
+
+        if (i == 2) std::cout << "   Controls:";
+        if (i == 4) std::cout << "   Move - W A S D";
+        if (i == 5) std::cout << "   Pause - P";
+        if (i == 6) std::cout << "   Continue - R";
+        if (i == 8) std::cout << "   Score:  " << score;
+        if (i == 9) std::cout << "   Time:   " << seconds << "  seconds ";
         std::cout << "\n";
     }
 }
 
-void input(int& dx, int& dy)
+void input(int& dx, int& dy, bool& paused)
 {
     if (_kbhit())
     {
@@ -162,6 +216,8 @@ void input(int& dx, int& dy)
         case 's': dx = 0; dy = 1; break;
         case 'a': dx = -1; dy = 0; break;
         case 'd': dx = 1; dy = 0; break;
+        case 'p': paused = true; break;
+        case 'r': paused = false; break;
         }
     }
 }
@@ -186,44 +242,141 @@ void spawnFood()
 
 }
 
+void spawnObstacle(Snake& snake)
+{
+    if (obstacleCount >= MAX_OBSTACLES) return;
+
+    int x, y;
+    bool valid;
+
+    do 
+    {
+        x = rand() % (WIDTH - 2) + 1;
+        y = rand() % (HEIGHT - 2) + 1;
+        valid = true;
+
+        for (int i = 0; i < snake.getLength(); i++)
+        {
+            if (snake.getX(i) == x && snake.getY(i) == y)
+            {
+                valid = false;
+                break;
+
+            }
+        }
+        if (x == foodX && y == foodY) 
+            valid = false;
+
+        for (int i = 0; i < obstacleCount; i++)
+        {
+            if (obstacleX[i] == x && obstacleY[i] == y)
+            {
+                valid = false;
+                break;
+            }
+        }
+    } while (!valid);
+    obstacleX[obstacleCount] = x;
+    obstacleY[obstacleCount] = y;
+    obstacleCount++;
+}
+
+bool hitObstacle(Snake& snake)
+{
+    for (int i = 0; i < obstacleCount; i++)
+    {
+        if (snake.getX(0) == obstacleX[i] && snake.getY(0) == obstacleY[i])
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 
 int main()
 {
+    int speed = 180;
     srand(time(0));
-    Snake snake;
-    int dx = 0;
-    int dy = 0;
-    bool gameOver = false;
+    char choice;
+    do {
 
-    spawnFood();
 
-    while (!gameOver)
-    {
-        drawBoard(snake, foodX, foodY);
-        input(dx, dy);
-        if (dx != 0 || dy != 0)
+        Snake snake;
+        obstacleCount = 0;
+        int dx = 0;
+        int dy = 0;
+        bool gameOver = false;
+        bool paused = false;
+        time_t startTime = time(0);
+        spawnFood();
+
+        while (!gameOver)
         {
-            snake.move(dx, dy);
-            if (snake.getX(0) == foodX && snake.getY(0) == foodY)
+            int score = snake.getLength() - 1;
+            int seconds = static_cast<int>(difftime(time(0), startTime));
+            drawBoard(snake, foodX, foodY, score, seconds);
+            if (paused)
+                std::cout << "\n⏸ Pauza - apasa 'r' pentru a continua\n";
+
+            input(dx, dy, paused);
+            if (!paused && dx != 0 || dy != 0)
             {
-                snake.grow();
-                spawnFood();
+                snake.move(dx, dy);
+                if (snake.getX(0) == foodX && snake.getY(0) == foodY)
+                {
+                    snake.grow();
+                    spawnFood();
+
+                    if (speed > 50)
+                        speed -= 10;
+
+                    int score = snake.getLength() - 1;
+                    if (score % 5 == 0 && score <= 75) 
+                    {
+                        spawnObstacle(snake);
+                    }
+
+                }
             }
+
+            if (hitWall(snake))
+            {
+                gameOver = true;
+            }
+
+            if (hitObstacle(snake))
+            {
+                gameOver = true;
+            }
+
+            if (snake.isColliding())
+            {
+                gameOver = true;
+            }
+
+
+            Sleep(speed);
         }
-        if (hitWall(snake))
+
+        std::cout << "GAME OVER! Scor: " << snake.getLength() - 1 << "\n";
+        std::cout << "Vrei sa salvezi scorul? (y/n): ";
+        char saveChoice;
+        std::cin >> saveChoice;
+
+        if (saveChoice == 'y' || saveChoice == 'Y')
         {
-            gameOver = true;
+            std::string nume;
+            std::cout << "Introdu numele tau: ";
+            std::cin >> nume;
+            saveScore(nume, snake.getLength() - 1);
+            showScore();
         }
 
-        if (snake.isColliding())
-        {
-            gameOver = true;
-        }
+        std::cout << "Vrei sa joci din nou? (y/n): ";
+        std::cin >> choice;
+    } while (choice  == 'y' || choice == 'Y');
 
-
-        Sleep(180);
-    }
-    std::cout << "GAME OVER! Scor: " << snake.getLength() - 1 << "\n";
     return 0;
 }
