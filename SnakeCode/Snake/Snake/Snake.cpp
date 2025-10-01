@@ -3,6 +3,8 @@
 #include <conio.h>
 #include <fstream>
 #include <string>
+#include "resource.h"
+
 using namespace std;
 
 const int WIDTH = 30;
