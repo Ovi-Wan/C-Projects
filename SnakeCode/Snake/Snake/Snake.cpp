@@ -299,12 +299,11 @@ bool hitObstacle(Snake& snake)
 
 int main()
 {
-    int speed = 180;
     srand(time(0));
     char choice;
     do {
 
-
+        int speed = 180;
         Snake snake;
         obstacleCount = 0;
         int dx = 0;
