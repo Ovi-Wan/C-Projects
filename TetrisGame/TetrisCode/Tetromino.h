@@ -1,5 +1,5 @@
 #ifndef TETROMINO_H
-#define TETROMINO_J
+#define TETROMINO_H
 
 
 
@@ -11,6 +11,7 @@ class Tetromino
         Tetromino(char type);
 
 };
+
 
 
 #endif
